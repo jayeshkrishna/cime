@@ -99,6 +99,45 @@ def buildlib(bldroot, installpath, case):
     else:
         cmake_opts = '"-D GENF90_PATH=' + srcroot + '/libraries/parallelio/scripts/ "'
 
+    if "ADIOS2_ROOT" in os.environ:
+        cmake_opts += '"-DWITH_ADIOS2:BOOL=ON "'
+        if "FROM_CREATE_TEST" in os.environ and os.environ["FROM_CREATE_TEST"] == "True":
+            cmake_opts += '"-DADIOS_BP2NC_TEST:BOOL=ON "'
+
+    # Case changes for NetCDF/NETCDF forces us to do this. For other packages
+    # what's already in the env should work
+    if "NETCDF_PATH" in os.environ:
+        netcdf_cmake_opts = f"-DNetCDF_PATH:PATH={os.environ['NETCDF_PATH']} "
+        cmake_opts += '"$netcdf_cmake_opts "'
+    if "NETCDF_C_PATH" in os.environ:
+        netcdf_c_cmake_opts = f"-DNetCDF_C_PATH:PATH={os.environ['NETCDF_C_PATH']} "
+        cmake_opts += '"$netcdf_c_cmake_opts "'
+    if "NETCDF_FORTRAN_PATH" in os.environ:
+        netcdf_f_cmake_opts = f"-DNetCDF_Fortran_PATH:PATH={os.environ['NETCDF_FORTRAN_PATH']} "
+        cmake_opts += '"$netcdf_f_cmake_opts "'
+
+    if "PNETCDF_PATH" in os.environ:
+        pnetcdf_cmake_opts = f"-DPnetCDF_PATH:PATH={os.environ['PNETCDF_PATH']} "
+        cmake_opts += '"$pnetcdf_cmake_opts "'
+
+    # scorpio needs a little help finding hdf5. The FindHDF5 in scopio uses the
+    # env var "HDF5" instead of "HDF5_ROOT". If HDF5_ROOT is not set, but we have
+    # h5dump in our path, we can use that info to set up HDF5. For now, we will
+    # assume only HDF5_ROOT is what matters.
+    if "HDF5_ROOT" in os.environ:
+        os.environ["HDF5"] = os.environ["HDF5_ROOT"]
+
+    # Same deal with libz and szip
+    if "ZLIB_ROOT" in os.environ:
+        os.environ["LIBZ"] = os.environ["ZLIB_ROOT"] # LIBZ/ZLIB
+    if "SZIP_ROOT" in os.environ:
+        os.environ["SZIP"] = os.environ["SZIP_ROOT"]
+
+    cmake_opts += '"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON "'
+    install_cmake_opts = f"-DGPTL_PATH:STRING={installpath} "
+    cmake_opts += '"$install_cmake_opts "'
+    cmake_opts += '"-DPIO_ENABLE_TESTS:BOOL=OFF -DPIO_USE_MALLOC:BOOL=ON "'
+
     stdargs = get_standard_makefile_args(case, shared_lib=True)
 
     gmake_vars = (
